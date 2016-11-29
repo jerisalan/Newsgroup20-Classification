@@ -10,6 +10,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
 import nltk
 from nltk import word_tokenize
 from nltk.corpus import stopwords
+from matplotlib import pyplot as plt
+import numpy as np
+import itertools
 
 
 __stemmer = nltk.stem.SnowballStemmer("english")
@@ -23,11 +26,11 @@ stopwords_set.update(other_stopwords)
 
 def remove_email_address(docs):
     for i in range(0,len(docs.data)):
-        	split_words = docs.data[i].split('\n')   
-        	docs.data[i] = ""   
-        	for j in range(0,len(split_words)):
-        		if EMAIL_REGEX.search(split_words[j]) is None:
-        			docs.data[i] += split_words[j] +'\n'
+    	split_words = docs.data[i].split('\n')   
+    	docs.data[i] = ""   
+    	for j in range(0,len(split_words)):
+    		if EMAIL_REGEX.search(split_words[j]) is None:
+    			docs.data[i] += split_words[j] +'\n'
     return docs
     
 
@@ -80,7 +83,7 @@ def setup_pipeline(learning_algo, tf_ind):
 
     
 def print_stats(expected, predicted, learning_algo):
-    print('Confusion matrix for: %s\n'%learning_algo)
+    print('Confusion matrix for: %s'%learning_algo)
     print(metrics.confusion_matrix(expected, predicted))
     print('Actual Recall')
     print(metrics.recall_score(expected, predicted, average='macro'))
@@ -91,12 +94,31 @@ def print_stats(expected, predicted, learning_algo):
     print('Actual F1 Score')
     print(metrics.f1_score(expected, predicted, average='macro'))
     print '\n'
-   
-    
-docs_train = load_files('train',categories = category, encoding='latin-1') 
+
+#Pretty print confusion matrix  
+def plot_confusion_matrix(cm, classes, title='Confusion matrix', cmap=plt.cm.Blues):
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j], horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+ 
+
+docs_train = load_files('train',categories = category, encoding='latin-1')
+#Remove email addresses and specific set of stop words adding bias
 docs_train = remove_email_address(docs_train)
 docs_train = remove_specific_words(docs_train)
 docs_test = load_files('test',categories = category, encoding='latin-1')
+#Remove email addresses and specific set of stop words adding bias
 docs_test = remove_email_address(docs_test)
 docs_test = remove_specific_words(docs_test)
 
@@ -114,3 +136,8 @@ print('Predicting Values')
 perceptron_pred = perceptron_fit.predict(docs_test.data)
 print('Printing results')
 print_stats(docs_test.target,perceptron_pred,'Multi Layer Perceptron')
+
+# Plot non-normalized confusion matrix
+plt.figure()
+plot_confusion_matrix(metrics.confusion_matrix(docs_test.target, perceptron_pred), classes=category, title='Confusion matrix')
+plt.show()
