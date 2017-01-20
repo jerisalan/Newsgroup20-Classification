@@ -6,6 +6,8 @@ from sklearn import feature_extraction
 from sklearn.datasets import load_files
 from sklearn.decomposition import TruncatedSVD
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer,CountVectorizer
 import nltk
 from nltk import word_tokenize
@@ -113,11 +115,11 @@ def plot_confusion_matrix(cm, classes, title='Confusion matrix', cmap=plt.cm.Blu
     plt.xlabel('Predicted label')
  
 
-docs_train = load_files('train',categories = category, encoding='latin-1')
+docs_train = load_files('data/train',categories = category, encoding='latin-1')
 #Remove email addresses and specific set of stop words adding bias
 docs_train = remove_email_address(docs_train)
 docs_train = remove_specific_words(docs_train)
-docs_test = load_files('test',categories = category, encoding='latin-1')
+docs_test = load_files('data/test',categories = category, encoding='latin-1')
 #Remove email addresses and specific set of stop words adding bias
 docs_test = remove_email_address(docs_test)
 docs_test = remove_specific_words(docs_test)
@@ -140,4 +142,25 @@ print_stats(docs_test.target,perceptron_pred,'Multi Layer Perceptron')
 # Plot non-normalized confusion matrix
 plt.figure()
 plot_confusion_matrix(metrics.confusion_matrix(docs_test.target, perceptron_pred), classes=category, title='Confusion matrix')
+plt.show()
+
+#Classifaction using Multiclass SVM
+print('Creating SVM Object')
+svm_basic = SVC(kernel='linear', class_weight='balanced', probability=True, random_state=40)
+print('Created SVM Object')
+print('Creating SVM OVR Classifier')
+svm_onerest = OneVsRestClassifier(svm_basic)
+print('Created SVM OVR Classifier')
+print('Creating SVM pipeline')
+pipeline_svm_onerest = pipeline_setup(svm_onerest)
+print('Created SVM pipeline')
+print('Fitting model with training data')
+pipeline_svm_fitted = pipeline_svm_onerest.fit(docs_train.data, docs_train.target)
+print('Fitted model and predicting now...')
+svm_predict = pipeline_svm_fitted.predict(docs_test.data)
+print_stats(docs_test.target, svm_predict, 'SVM OneVSRest')
+
+# Plot non-normalized confusion matrix
+plt.figure()
+plot_confusion_matrix(metrics.confusion_matrix(docs_test.target, svm_predict), classes=category, title='Confusion matrix')
 plt.show()
